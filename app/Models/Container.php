@@ -9,6 +9,14 @@ class Container extends Model
 {
     use HasFactory;
 
-    // Ini wajib agar terhindar dari error Mass Assignment
-    protected $fillable = ['container_id', 'waste_type', 'weight_kg', 'status'];
+    // Nama tabel di database
+    protected $table = 'containers';
+
+    // Kolom yang boleh diisi secara massal
+    protected $fillable = [
+        'container_id',
+        'waste_type',
+        'weight_kg',
+        'status'
+    ];
 }
