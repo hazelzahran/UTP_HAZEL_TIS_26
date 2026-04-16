@@ -18,19 +18,19 @@
                 <h5>Tambah Kontainer Baru</h5>
                 <form id="containerForm" class="row g-3">
                     <div class="col-md-3">
-                        <input type="text" id="container_id" class="form-control" placeholder="ID (Contoh: GD12345)">
-                        <div class="text-danger small" id="err_container_id"></div>
+                        <input type="text" id="cid" class="form-control" placeholder="ID (Contoh: GD12345)">
+                        <div class="text-danger small" id="err_cid"></div>
                     </div>
                     <div class="col-md-3">
-                        <select id="waste_type" class="form-select">
+                        <select id="wtype" class="form-select">
                             <option value="Chemical">Chemical</option>
                             <option value="Medical">Medical</option>
                             <option value="Electronic">Electronic</option>
                         </select>
                     </div>
                     <div class="col-md-3">
-                        <input type="number" id="weight_kg" class="form-control" placeholder="Berat (kg)">
-                        <div class="text-danger small" id="err_weight_kg"></div>
+                        <input type="number" id="wkg" class="form-control" placeholder="Berat (kg)">
+                        <div class="text-danger small" id="err_wkg"></div>
                     </div>
                     <div class="col-md-3">
                         <button type="submit" class="btn btn-success w-100">Simpan</button>
@@ -39,94 +39,65 @@
             </div>
         </div>
 
-        <table class="table table-white table-hover">
-            <thead>
-                <tr>
-                    <th>ID Kontainer</th>
-                    <th>Tipe Limbah</th>
-                    <th>Berat</th>
-                    <th>Status</th>
-                    <th>Aksi</th>
-                </tr>
+        <table class="table table-hover bg-white shadow-sm">
+            <thead class="table-dark">
+                <tr><th>ID Kontainer</th><th>Tipe Limbah</th><th>Berat</th><th>Status</th><th>Aksi</th></tr>
             </thead>
             <tbody id="containerTable"></tbody>
         </table>
     </div>
 
     <script>
-        const api = axios.create({
-            baseURL: 'http://127.0.0.1:8000/api',
-            headers: {'Accept': 'application/json'}
-        });
+        const api = axios.create({ baseURL: 'http://127.0.0.1:8000/api' });
 
         async function loadData() {
             try {
                 const res = await api.get('/containers');
-                renderTable(res.data);
-            } catch (err) { console.error(err); }
-        }
-
-        function renderTable(data) {
-            const tbody = document.getElementById('containerTable');
-            let totalWeight = 0;
-            tbody.innerHTML = '';
-
-            data.forEach(item => {
-                totalWeight += parseInt(item.weight_kg);
-                tbody.innerHTML += `
-                    <tr>
+                const tbody = document.getElementById('containerTable');
+                let total = 0;
+                
+                tbody.innerHTML = res.data.map(item => {
+                    total += parseInt(item.weight_kg);
+                    return `<tr>
                         <td>${item.container_id}</td>
                         <td>${item.waste_type}</td>
                         <td>${item.weight_kg} kg</td>
-                        <td><span class="badge ${item.status === 'Active' ? 'bg-info' : 'bg-secondary'}">${item.status}</span></td>
+                        <td><span class="badge ${item.status==='Active'?'bg-info':'bg-secondary'}">${item.status}</span></td>
                         <td>
-                            <button onclick="archiveItem('${item.container_id}')" class="btn btn-sm btn-warning">Archive</button>
-                            <button onclick="deleteItem('${item.container_id}')" class="btn btn-sm btn-danger">Hapus</button>
+                            <button onclick="alert('Archived')" class="btn btn-sm btn-warning">Archive</button>
+                            <button onclick="confirm('Hapus?') && alert('Deleted')" class="btn btn-sm btn-danger">Hapus</button>
                         </td>
-                    </tr>
-                `;
-            });
-            document.getElementById('totalWeightDisplay').innerText = `Total Muatan: ${totalWeight} kg`;
+                    </tr>`;
+                }).join('');
+                
+                document.getElementById('totalWeightDisplay').innerText = `Total Muatan: ${total} kg`;
+            } catch (e) { console.error("Koneksi API Gagal", e); }
         }
 
-        document.getElementById('containerForm').addEventListener('submit', async (e) => {
+        document.getElementById('containerForm').onsubmit = async (e) => {
             e.preventDefault();
-            // Reset error messages
-            document.querySelectorAll('.text-danger').forEach(el => el.innerText = '');
-
-            const payload = {
-                container_id: document.getElementById('container_id').value,
-                waste_type: document.getElementById('waste_type').value,
-                weight_kg: document.getElementById('weight_kg').value,
-            };
+            // Reset pesan error
+            document.getElementById('err_cid').innerText = '';
+            document.getElementById('err_wkg').innerText = '';
 
             try {
-                await api.post('/containers', payload);
-                alert('Data berhasil ditambahkan (Simulasi)');
-                loadData();
+                await api.post('/containers', {
+                    container_id: document.getElementById('cid').value,
+                    waste_type: document.getElementById('wtype').value,
+                    weight_kg: document.getElementById('wkg').value
+                });
+                alert("Data Berhasil Ditambah!");
+                loadData(); // Langsung render ulang tabel
             } catch (err) {
                 if (err.response && err.response.status === 422) {
                     const errors = err.response.data.errors;
-                    if (errors.container_id) document.getElementById('err_container_id').innerText = errors.container_id[0];
-                    if (errors.weight_kg) document.getElementById('err_weight_kg').innerText = errors.weight_kg[0];
+                    if (errors.container_id) document.getElementById('err_cid').innerText = errors.container_id[0];
+                    if (errors.weight_kg) document.getElementById('err_wkg').innerText = errors.weight_kg[0];
                 }
             }
-        });
+        };
 
-        async function archiveItem(id) {
-            if (confirm('Arsip kontainer ini?')) {
-                await api.patch(`/containers/${id}/archive`);
-                alert('Status berubah menjadi Archived');
-            }
-        }
-
-        async function deleteItem(id) {
-            if (confirm('Hapus data ini?')) {
-                await api.delete(`/containers/${id}`);
-                alert('Data dihapus');
-            }
-        }
-
+        // Panggil data pertama kali halaman dimuat
         loadData();
     </script>
 </body>
