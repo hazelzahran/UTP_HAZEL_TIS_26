@@ -4,19 +4,27 @@ namespace App\Models;
 
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
+use Illuminate\Database\Eloquent\Relations\HasMany;
 
 class Container extends Model
 {
     use HasFactory;
 
-    // Nama tabel di database
     protected $table = 'containers';
 
-    // Kolom yang boleh diisi secara massal
     protected $fillable = [
-        'container_id',
-        'waste_type',
-        'weight_kg',
-        'status'
+        'kode_container',
+        'jenis_limbah',
+        'kapasitas',
+        'lokasi',
+        'status',
     ];
+
+    /**
+     * Relasi: Satu container memiliki banyak tracking logs.
+     */
+    public function trackingLogs(): HasMany
+    {
+        return $this->hasMany(TrackingLog::class);
+    }
 }
