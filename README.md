@@ -1,58 +1,120 @@
-<p align="center"><a href="https://laravel.com" target="_blank"><img src="https://raw.githubusercontent.com/laravel/art/master/logo-lockup/5%20SVG/2%20CMYK/1%20Full%20Color/laravel-logolockup-cmyk-red.svg" width="400" alt="Laravel Logo"></a></p>
+# WowoClean Enterprise Dashboard
 
-<p align="center">
-<a href="https://github.com/laravel/framework/actions"><img src="https://github.com/laravel/framework/workflows/tests/badge.svg" alt="Build Status"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/dt/laravel/framework" alt="Total Downloads"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/v/laravel/framework" alt="Latest Stable Version"></a>
-<a href="https://packagist.org/packages/laravel/framework"><img src="https://img.shields.io/packagist/l/laravel/framework" alt="License"></a>
-</p>
+Sistem Manajemen Limbah B3 berbasis REST API modern dengan Laravel 13 dan SPA HTML/JS.
 
-## About Laravel
+## Tech Stack
+- **Backend**: Laravel 13, MySQL, Eloquent ORM
+- **Authentication**: JWT (JSON Web Token) via `php-open-source-saver/jwt-auth`
+- **Documentation**: Swagger/OpenAPI via `darkaonline/l5-swagger`
+- **Frontend**: HTML5, Vanilla JS, Bootstrap 5, Axios, Chart.js, SweetAlert2
 
-Laravel is a web application framework with expressive, elegant syntax. We believe development must be an enjoyable and creative experience to be truly fulfilling. Laravel takes the pain out of development by easing common tasks used in many web projects, such as:
+## Fitur Utama
+1. **Role-based JWT Authentication** (Admin & User)
+2. **API Gateway Architecture** (`/api/v1/gateway/*`)
+3. **Container Management** (Full CRUD, Search, Filter, Sort, Pagination)
+4. **Tracking Logs** (Timeline perjalanan limbah)
+5. **Modern Dashboard Analytics** (Statistik & Chart)
 
-- [Simple, fast routing engine](https://laravel.com/docs/routing).
-- [Powerful dependency injection container](https://laravel.com/docs/container).
-- Multiple back-ends for [session](https://laravel.com/docs/session) and [cache](https://laravel.com/docs/cache) storage.
-- Expressive, intuitive [database ORM](https://laravel.com/docs/eloquent).
-- Database agnostic [schema migrations](https://laravel.com/docs/migrations).
-- [Robust background job processing](https://laravel.com/docs/queues).
-- [Real-time event broadcasting](https://laravel.com/docs/broadcasting).
+---
 
-Laravel is accessible, powerful, and provides tools required for large, robust applications.
+## 🚀 Cara Setup & Menjalankan Project
 
-## Learning Laravel
+### 1. Persiapan Database
+Pastikan server MySQL (melalui Laragon/XAMPP) sudah menyala.
+Aplikasi menggunakan database bernama `wowoclean` sesuai konfigurasi `.env`.
 
-Laravel has the most extensive and thorough [documentation](https://laravel.com/docs) and video tutorial library of all modern web application frameworks, making it a breeze to get started with the framework.
-
-In addition, [Laracasts](https://laracasts.com) contains thousands of video tutorials on a range of topics including Laravel, modern PHP, unit testing, and JavaScript. Boost your skills by digging into our comprehensive video library.
-
-You can also watch bite-sized lessons with real-world projects on [Laravel Learn](https://laravel.com/learn), where you will be guided through building a Laravel application from scratch while learning PHP fundamentals.
-
-## Agentic Development
-
-Laravel's predictable structure and conventions make it ideal for AI coding agents like Claude Code, Cursor, and GitHub Copilot. Install [Laravel Boost](https://laravel.com/docs/ai) to supercharge your AI workflow:
-
+### 2. Instalasi Dependensi
+Jalankan perintah berikut di terminal (berada di folder project):
 ```bash
-composer require laravel/boost --dev
-
-php artisan boost:install
+composer install
 ```
 
-Boost provides your agent 15+ tools and skills that help agents build Laravel applications while following best practices.
+### 3. Generate Application Key & JWT Secret
+```bash
+php artisan key:generate
+php artisan jwt:secret
+```
 
-## Contributing
+### 4. Setup Database (Migration & Seeder)
+Perintah ini akan membuat semua tabel dan mengisi data *dummy* (termasuk akun admin & user).
+```bash
+php artisan migrate:fresh --seed
+```
 
-Thank you for considering contributing to the Laravel framework! The contribution guide can be found in the [Laravel documentation](https://laravel.com/docs/contributions).
+### 5. Generate Dokumentasi Swagger
+Wajib dijalankan agar halaman dokumentasi OpenAPI bisa diakses.
+```bash
+php artisan l5-swagger:generate
+```
 
-## Code of Conduct
+### 6. Jalankan Local Server
+```bash
+php artisan serve
+```
 
-In order to ensure that the Laravel community is welcoming to all, please review and abide by the [Code of Conduct](https://laravel.com/docs/contributions#code-of-conduct).
+---
 
-## Security Vulnerabilities
+## 🔑 Akun Uji Coba (Seeder)
 
-If you discover a security vulnerability within Laravel, please send an e-mail to Taylor Otwell via [taylor@laravel.com](mailto:taylor@laravel.com). All security vulnerabilities will be promptly addressed.
+Gunakan akun berikut untuk login di Frontend atau Swagger:
 
-## License
+**1. Administrator (Full Access)**
+- Email: `admin@wowoclean.com`
+- Password: `password123`
+- Akses: Create, Read, Update, Delete, Archive, Add Tracking Log
 
-The Laravel framework is open-sourced software licensed under the [MIT license](https://opensource.org/licenses/MIT).
+**2. User / Operator Lapangan (Read-Only)**
+- Email: `operator@wowoclean.com`
+- Password: `password123`
+- Akses: View dashboard, read containers, read tracking logs
+
+---
+
+## 📚 Akses Aplikasi
+
+### Frontend (User Interface)
+Buka di browser:
+👉 **[http://localhost:8000](http://localhost:8000)** (atau via virtual host Laragon Anda)
+
+### Swagger (API Documentation)
+Buka di browser:
+👉 **[http://localhost:8000/api/documentation](http://localhost:8000/api/documentation)**
+
+---
+
+## 🧪 Testing API Endpoint via Postman
+
+Anda bisa melakukan testing manual dengan endpoint berikut:
+
+**1. Login (Dapatkan Token JWT)**
+- **Method**: `POST`
+- **URL**: `http://localhost:8000/api/v1/login`
+- **Body** (JSON):
+  ```json
+  {
+      "email": "admin@wowoclean.com",
+      "password": "password123"
+  }
+  ```
+> Copy value `token` dari response.
+
+**2. Get All Containers (Mendukung Search, Filter, Pagination)**
+- **Method**: `GET`
+- **URL**: `http://localhost:8000/api/v1/gateway/containers?per_page=10`
+- **Headers**: 
+  - `Authorization`: `Bearer <token_anda_disini>`
+
+**3. Add New Container (Admin Only)**
+- **Method**: `POST`
+- **URL**: `http://localhost:8000/api/v1/gateway/containers`
+- **Headers**:
+  - `Authorization`: `Bearer <token_anda_disini>`
+- **Body** (JSON):
+  ```json
+  {
+      "kode_container": "WC-TEST-001",
+      "jenis_limbah": "Chemical",
+      "kapasitas": 500,
+      "lokasi": "Gudang Z"
+  }
+  ```

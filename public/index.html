@@ -1,104 +1,839 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="id" data-bs-theme="dark">
 <head>
     <meta charset="UTF-8">
-    <title>WowoClean - Tracking System</title>
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
-</head>
-<body class="bg-light">
-    <div class="container mt-5">
-        <div class="d-flex justify-content-between align-items-center">
-            <h1>WowoClean B3 Tracking</h1>
-            <div class="badge bg-primary fs-5" id="totalWeightDisplay">Total Muatan: 0 kg</div>
-        </div>
-
-        <div class="card my-4">
-            <div class="card-body">
-                <h5>Tambah Kontainer Baru</h5>
-                <form id="containerForm" class="row g-3">
-                    <div class="col-md-3">
-                        <input type="text" id="cid" class="form-control" placeholder="ID (Contoh: GD12345)">
-                        <div class="text-danger small" id="err_cid"></div>
-                    </div>
-                    <div class="col-md-3">
-                        <select id="wtype" class="form-select">
-                            <option value="Chemical">Chemical</option>
-                            <option value="Medical">Medical</option>
-                            <option value="Electronic">Electronic</option>
-                        </select>
-                    </div>
-                    <div class="col-md-3">
-                        <input type="number" id="wkg" class="form-control" placeholder="Berat (kg)">
-                        <div class="text-danger small" id="err_wkg"></div>
-                    </div>
-                    <div class="col-md-3">
-                        <button type="submit" class="btn btn-success w-100">Simpan</button>
-                    </div>
-                </form>
-            </div>
-        </div>
-
-        <table class="table table-hover bg-white shadow-sm">
-            <thead class="table-dark">
-                <tr><th>ID Kontainer</th><th>Tipe Limbah</th><th>Berat</th><th>Status</th><th>Aksi</th></tr>
-            </thead>
-            <tbody id="containerTable"></tbody>
-        </table>
-    </div>
-
-    <script>
-        const api = axios.create({ baseURL: 'http://127.0.0.1:8000/api' });
-
-        async function loadData() {
-            try {
-                const res = await api.get('/containers');
-                const tbody = document.getElementById('containerTable');
-                let total = 0;
-                
-                tbody.innerHTML = res.data.map(item => {
-                    total += parseInt(item.weight_kg);
-                    return `<tr>
-                        <td>${item.container_id}</td>
-                        <td>${item.waste_type}</td>
-                        <td>${item.weight_kg} kg</td>
-                        <td><span class="badge ${item.status==='Active'?'bg-info':'bg-secondary'}">${item.status}</span></td>
-                        <td>
-                            <button onclick="alert('Archived')" class="btn btn-sm btn-warning">Archive</button>
-                            <button onclick="confirm('Hapus?') && alert('Deleted')" class="btn btn-sm btn-danger">Hapus</button>
-                        </td>
-                    </tr>`;
-                }).join('');
-                
-                document.getElementById('totalWeightDisplay').innerText = `Total Muatan: ${total} kg`;
-            } catch (e) { console.error("Koneksi API Gagal", e); }
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WowoClean Enterprise - Smart Waste Management</title>
+    <!-- Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- Bootstrap Icons -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.1/font/bootstrap-icons.css">
+    <!-- SweetAlert2 -->
+    <link href="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.min.css" rel="stylesheet">
+    
+    <style>
+        :root {
+            --primary: #06b6d4;
+            --primary-dark: #0891b2;
+            --bg-dark: #0f172a;
+            --surface-dark: #1e293b;
+            --text-light: #f8fafc;
         }
 
-        document.getElementById('containerForm').onsubmit = async (e) => {
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-light);
+            transition: all 0.3s ease;
+        }
+
+        [data-bs-theme="light"] {
+            --bg-dark: #f1f5f9;
+            --surface-dark: #ffffff;
+            --text-light: #1e293b;
+        }
+
+        /* Utilities */
+        .glass-card {
+            background: rgba(30, 41, 59, 0.7);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            border-radius: 1rem;
+        }
+        
+        [data-bs-theme="light"] .glass-card {
+            background: rgba(255, 255, 255, 0.9);
+            border: 1px solid rgba(0, 0, 0, 0.1);
+        }
+
+        .text-primary-cyan { color: var(--primary) !important; }
+        .bg-primary-cyan { background-color: var(--primary) !important; color: white; }
+        .btn-cyan { background-color: var(--primary); color: white; border: none; }
+        .btn-cyan:hover { background-color: var(--primary-dark); color: white; }
+
+        /* Layout */
+        .wrapper { display: flex; width: 100%; height: 100vh; overflow: hidden; }
+        
+        .sidebar {
+            width: 250px;
+            background-color: var(--surface-dark);
+            height: 100vh;
+            transition: all 0.3s;
+            display: flex;
+            flex-direction: column;
+            border-right: 1px solid rgba(255,255,255,0.05);
+        }
+
+        .sidebar.collapsed { width: 80px; }
+        .sidebar.collapsed .nav-text { display: none; }
+        .sidebar.collapsed .logo-text { display: none; }
+        
+        .main-content {
+            flex: 1;
+            overflow-y: auto;
+            padding: 2rem;
+        }
+
+        .nav-link {
+            color: rgba(255,255,255,0.7);
+            padding: 0.8rem 1.5rem;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            border-radius: 0.5rem;
+            margin: 0.2rem 1rem;
+            transition: all 0.2s;
+        }
+        
+        [data-bs-theme="light"] .nav-link { color: #475569; }
+
+        .nav-link:hover, .nav-link.active {
+            background-color: rgba(6, 182, 212, 0.1);
+            color: var(--primary);
+        }
+
+        /* Authentication Page */
+        #auth-page {
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: linear-gradient(135deg, #0f172a 0%, #1e293b 100%);
+        }
+        
+        [data-bs-theme="light"] #auth-page { background: linear-gradient(135deg, #e2e8f0 0%, #ffffff 100%); }
+
+        .login-card { max-width: 400px; width: 100%; padding: 2rem; }
+
+        /* Dashboard specific */
+        .stat-card {
+            border-left: 4px solid var(--primary);
+            transition: transform 0.2s;
+        }
+        .stat-card:hover { transform: translateY(-5px); }
+        
+        .table-dark { --bs-table-bg: var(--surface-dark); }
+        
+        /* Loading Skeleton */
+        .skeleton {
+            animation: skeleton-loading 1s linear infinite alternate;
+        }
+        @keyframes skeleton-loading {
+            0% { background-color: hsl(215, 20%, 20%); }
+            100% { background-color: hsl(215, 20%, 30%); }
+        }
+
+        /* Timeline */
+        .timeline { border-left: 2px solid var(--primary); padding-left: 20px; list-style: none; margin-left: 10px; }
+        .timeline-item { position: relative; margin-bottom: 1.5rem; }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -27px;
+            top: 0;
+            width: 12px;
+            height: 12px;
+            border-radius: 50%;
+            background: var(--primary);
+            border: 2px solid var(--surface-dark);
+        }
+    </style>
+</head>
+<body>
+
+    <!-- LOGIN PAGE -->
+    <div id="auth-page" class="d-none">
+        <div class="glass-card login-card text-center shadow-lg">
+            <i class="bi bi-box-seam text-primary-cyan" style="font-size: 3rem;"></i>
+            <h2 class="mt-3 mb-4 fw-bold">WowoClean</h2>
+            <form id="loginForm" onsubmit="handleLogin(event)">
+                <div class="form-floating mb-3 text-start">
+                    <input type="email" class="form-control bg-transparent text-light" id="emailInput" placeholder="name@example.com" value="admin@wowoclean.com" required>
+                    <label for="emailInput" class="text-muted">Email address</label>
+                </div>
+                <div class="form-floating mb-4 text-start">
+                    <input type="password" class="form-control bg-transparent text-light" id="passwordInput" placeholder="Password" value="password123" required>
+                    <label for="passwordInput" class="text-muted">Password</label>
+                </div>
+                <button type="submit" class="btn btn-cyan w-100 py-2 fw-semibold" id="btnLogin">
+                    Login to System
+                </button>
+            </form>
+            <div class="mt-3 small text-muted">Demo: admin@wowoclean.com / operator@wowoclean.com (pwd: password123)</div>
+        </div>
+    </div>
+
+    <!-- MAIN APP PAGE -->
+    <div id="app-page" class="wrapper d-none">
+        
+        <!-- Sidebar -->
+        <nav class="sidebar" id="sidebar">
+            <div class="p-3 d-flex align-items-center justify-content-between">
+                <div class="d-flex align-items-center gap-2">
+                    <i class="bi bi-box-seam fs-4 text-primary-cyan"></i>
+                    <span class="fs-5 fw-bold logo-text">WowoClean</span>
+                </div>
+                <button class="btn btn-sm btn-link text-light" onclick="toggleSidebar()"><i class="bi bi-list"></i></button>
+            </div>
+            
+            <div class="mt-4 flex-grow-1">
+                <a href="#" class="nav-link active" onclick="switchTab('dashboard')"><i class="bi bi-grid-1x2"></i> <span class="nav-text">Dashboard</span></a>
+                <a href="#" class="nav-link" onclick="switchTab('containers')"><i class="bi bi-box"></i> <span class="nav-text">Containers</span></a>
+            </div>
+
+            <div class="p-3 border-top border-secondary">
+                <div class="d-flex align-items-center gap-2 mb-3">
+                    <div class="rounded-circle bg-primary-cyan d-flex align-items-center justify-content-center" style="width: 40px; height: 40px;">
+                        <i class="bi bi-person"></i>
+                    </div>
+                    <div class="nav-text">
+                        <div class="fw-semibold small" id="userNameDisplay">Loading...</div>
+                        <div class="badge bg-secondary" id="userRoleDisplay">Role</div>
+                    </div>
+                </div>
+                <button class="btn btn-sm btn-outline-danger w-100 nav-text" onclick="handleLogout()">Logout</button>
+                <button class="btn btn-sm btn-link text-danger w-100 sidebar-collapsed-only d-none" onclick="handleLogout()"><i class="bi bi-box-arrow-right"></i></button>
+            </div>
+        </nav>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Header -->
+            <header class="d-flex justify-content-between align-items-center mb-4">
+                <div>
+                    <h2 class="mb-0 fw-bold" id="pageTitle">Dashboard Analytics</h2>
+                    <nav aria-label="breadcrumb">
+                        <ol class="breadcrumb small mb-0">
+                            <li class="breadcrumb-item"><a href="#" class="text-decoration-none text-muted">Home</a></li>
+                            <li class="breadcrumb-item active text-primary-cyan" aria-current="page" id="breadcrumbActive">Dashboard</li>
+                        </ol>
+                    </nav>
+                </div>
+                <div class="d-flex gap-2">
+                    <button class="btn btn-outline-secondary" onclick="toggleTheme()"><i class="bi bi-moon-stars"></i></button>
+                    <a href="/api/documentation" target="_blank" class="btn btn-outline-info"><i class="bi bi-file-earmark-code"></i> API Docs</a>
+                </div>
+            </header>
+
+            <!-- VIEW: DASHBOARD -->
+            <div id="view-dashboard" class="view-section">
+                <!-- Stats Row -->
+                <div class="row g-3 mb-4">
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 stat-card">
+                            <div class="text-muted small fw-semibold">TOTAL CONTAINERS</div>
+                            <div class="fs-2 fw-bold" id="statTotal">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 stat-card" style="border-color: #06b6d4;">
+                            <div class="text-muted small fw-semibold">ACTIVE</div>
+                            <div class="fs-2 fw-bold text-info" id="statActive">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 stat-card" style="border-color: #f59e0b;">
+                            <div class="text-muted small fw-semibold">MAINTENANCE</div>
+                            <div class="fs-2 fw-bold text-warning" id="statMaintenance">-</div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="glass-card p-3 stat-card" style="border-color: #64748b;">
+                            <div class="text-muted small fw-semibold">ARCHIVED</div>
+                            <div class="fs-2 fw-bold text-secondary" id="statArchived">-</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="row g-4">
+                    <!-- Charts -->
+                    <div class="col-lg-8">
+                        <div class="glass-card p-4 h-100">
+                            <h5 class="fw-bold mb-4">Aktivitas Tracking (30 Hari)</h5>
+                            <canvas id="trackingChart" height="100"></canvas>
+                        </div>
+                    </div>
+                    <div class="col-lg-4">
+                        <div class="glass-card p-4 h-100">
+                            <h5 class="fw-bold mb-4">Distribusi Limbah</h5>
+                            <canvas id="jenisChart" height="200"></canvas>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- VIEW: CONTAINERS -->
+            <div id="view-containers" class="view-section d-none">
+                <div class="glass-card p-4">
+                    <div class="d-flex justify-content-between align-items-center mb-4 flex-wrap gap-3">
+                        <div class="d-flex gap-2">
+                            <input type="text" id="searchInput" class="form-control form-control-sm bg-transparent text-light" placeholder="Cari ID / Lokasi..." onkeyup="delaySearch()">
+                            <select id="filterStatus" class="form-select form-select-sm bg-transparent text-light" onchange="loadContainers()">
+                                <option value="">Semua Status</option>
+                                <option value="Active">Active</option>
+                                <option value="Maintenance">Maintenance</option>
+                                <option value="Full">Full</option>
+                                <option value="Archived">Archived</option>
+                            </select>
+                        </div>
+                        <button class="btn btn-cyan btn-sm fw-semibold" id="btnAddContainer" onclick="openModal('add')">
+                            <i class="bi bi-plus-lg"></i> Tambah Container
+                        </button>
+                    </div>
+
+                    <div class="table-responsive">
+                        <table class="table table-hover align-middle table-dark bg-transparent">
+                            <thead>
+                                <tr>
+                                    <th>Kode ID</th>
+                                    <th>Jenis Limbah</th>
+                                    <th>Kapasitas</th>
+                                    <th>Lokasi Saat Ini</th>
+                                    <th>Status</th>
+                                    <th>Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody id="containerTableBody">
+                                <tr><td colspan="6" class="text-center py-4">Memuat data...</td></tr>
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="d-flex justify-content-between align-items-center mt-3">
+                        <div class="small text-muted" id="paginationInfo">Showing 0 of 0</div>
+                        <div class="btn-group" id="paginationControls"></div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- VIEW: CONTAINER DETAIL -->
+            <div id="view-detail" class="view-section d-none">
+                <button class="btn btn-sm btn-outline-secondary mb-3" onclick="switchTab('containers')"><i class="bi bi-arrow-left"></i> Kembali</button>
+                
+                <div class="row g-4">
+                    <div class="col-md-4">
+                        <div class="glass-card p-4">
+                            <h5 class="fw-bold mb-3">Info Container</h5>
+                            <div id="detailInfo">Memuat...</div>
+                        </div>
+                    </div>
+                    <div class="col-md-8">
+                        <div class="glass-card p-4">
+                            <div class="d-flex justify-content-between align-items-center mb-4">
+                                <h5 class="fw-bold mb-0">Timeline Tracking</h5>
+                                <button class="btn btn-sm btn-cyan" id="btnAddLog" onclick="openLogModal()"><i class="bi bi-plus"></i> Tambah Log</button>
+                            </div>
+                            <ul class="timeline" id="trackingTimeline">
+                                <li>Memuat log perjalanan...</li>
+                            </ul>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </main>
+    </div>
+
+    <!-- MODAL CONTAINER FORM -->
+    <div class="modal fade" id="containerModal" tabindex="-1" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content glass-card">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title" id="containerModalLabel">Tambah Container</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formContainer">
+                        <input type="hidden" id="c_id">
+                        <div class="mb-3">
+                            <label class="form-label small">Kode Container</label>
+                            <input type="text" id="c_kode" class="form-control bg-transparent text-light" required placeholder="WC-B3-...">
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Jenis Limbah</label>
+                            <select id="c_jenis" class="form-select bg-transparent text-light">
+                                <option value="Chemical">Chemical</option>
+                                <option value="Medical">Medical</option>
+                                <option value="Electronic">Electronic</option>
+                                <option value="Radioactive">Radioactive</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Kapasitas (kg)</label>
+                            <input type="number" id="c_kapasitas" class="form-control bg-transparent text-light" required>
+                            <div class="form-text text-muted small">Max 1000kg utk Chemical, 500kg utk Radioactive.</div>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Lokasi Awal</label>
+                            <input type="text" id="c_lokasi" class="form-control bg-transparent text-light" required>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-cyan" onclick="saveContainer()">Simpan</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL TRACKING LOG -->
+    <div class="modal fade" id="logModal" tabindex="-1" data-bs-theme="dark">
+        <div class="modal-dialog">
+            <div class="modal-content glass-card">
+                <div class="modal-header border-secondary">
+                    <h5 class="modal-title">Tambah Tracking Log</h5>
+                    <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+                </div>
+                <div class="modal-body">
+                    <form id="formLog">
+                        <div class="mb-3">
+                            <label class="form-label small">Tanggal</label>
+                            <input type="date" id="l_tanggal" class="form-control bg-transparent text-light" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Lokasi</label>
+                            <input type="text" id="l_lokasi" class="form-control bg-transparent text-light" required>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Status Perjalanan</label>
+                            <select id="l_status" class="form-select bg-transparent text-light">
+                                <option value="Received">Received</option>
+                                <option value="In Transit">In Transit</option>
+                                <option value="Processing">Processing</option>
+                                <option value="Completed">Completed</option>
+                                <option value="Maintenance">Maintenance</option>
+                            </select>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label small">Catatan</label>
+                            <textarea id="l_catatan" class="form-control bg-transparent text-light" rows="3"></textarea>
+                        </div>
+                    </form>
+                </div>
+                <div class="modal-footer border-secondary">
+                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Batal</button>
+                    <button type="button" class="btn btn-cyan" onclick="saveLog()">Simpan Log</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Scripts -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11.7.32/dist/sweetalert2.all.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+    <script>
+        // === GLOBAL SETUP ===
+        const API_URL = 'http://localhost:8000/api/v1';
+        let currentUser = null;
+        let currentPage = 1;
+        let searchTimer = null;
+        let activeContainerId = null;
+        let charts = {};
+
+        // Axios Interceptor for Auth
+        axios.interceptors.request.use(config => {
+            const token = localStorage.getItem('jwt_token');
+            if (token) config.headers.Authorization = `Bearer ${token}`;
+            return config;
+        });
+
+        axios.interceptors.response.use(res => res, error => {
+            if (error.response && error.response.status === 401) {
+                handleLogout(false);
+            }
+            if (error.response && error.response.status === 403) {
+                Swal.fire('Akses Ditolak', error.response.data.message || 'Anda tidak memiliki akses (Admin Only).', 'error');
+            }
+            return Promise.reject(error);
+        });
+
+        // INIT
+        document.addEventListener('DOMContentLoaded', () => {
+            const token = localStorage.getItem('jwt_token');
+            if (token) {
+                checkProfile();
+            } else {
+                showPage('auth-page');
+            }
+            
+            // Set light/dark from localstorage
+            if(localStorage.getItem('theme') === 'light') toggleTheme(true);
+        });
+
+        // === AUTH & UI LOGIC ===
+        async function handleLogin(e) {
             e.preventDefault();
-            // Reset pesan error
-            document.getElementById('err_cid').innerText = '';
-            document.getElementById('err_wkg').innerText = '';
+            const btn = document.getElementById('btnLogin');
+            btn.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Loading...';
+            btn.disabled = true;
 
             try {
-                await api.post('/containers', {
-                    container_id: document.getElementById('cid').value,
-                    waste_type: document.getElementById('wtype').value,
-                    weight_kg: document.getElementById('wkg').value
+                const res = await axios.post(`${API_URL}/login`, {
+                    email: document.getElementById('emailInput').value,
+                    password: document.getElementById('passwordInput').value
                 });
-                alert("Data Berhasil Ditambah!");
-                loadData(); // Langsung render ulang tabel
+                
+                localStorage.setItem('jwt_token', res.data.token);
+                localStorage.setItem('user', JSON.stringify(res.data.user));
+                
+                checkProfile();
+                Swal.fire({ toast: true, position: 'top-end', icon: 'success', title: 'Login Berhasil', showConfirmButton: false, timer: 1500 });
             } catch (err) {
-                if (err.response && err.response.status === 422) {
-                    const errors = err.response.data.errors;
-                    if (errors.container_id) document.getElementById('err_cid').innerText = errors.container_id[0];
-                    if (errors.weight_kg) document.getElementById('err_wkg').innerText = errors.weight_kg[0];
+                Swal.fire('Gagal Login', 'Email atau password salah', 'error');
+            } finally {
+                btn.innerHTML = 'Login to System';
+                btn.disabled = false;
+            }
+        }
+
+        async function checkProfile() {
+            try {
+                const res = await axios.get(`${API_URL}/profile`);
+                currentUser = res.data.user;
+                document.getElementById('userNameDisplay').innerText = currentUser.name;
+                document.getElementById('userRoleDisplay').innerText = currentUser.role.toUpperCase();
+                document.getElementById('userRoleDisplay').className = `badge ${currentUser.role === 'admin' ? 'bg-danger' : 'bg-primary'}`;
+                
+                // Role based UI
+                if(currentUser.role !== 'admin') {
+                    document.getElementById('btnAddContainer').classList.add('d-none');
+                    document.getElementById('btnAddLog').classList.add('d-none');
+                }
+
+                showPage('app-page');
+                switchTab('dashboard');
+            } catch (err) {
+                handleLogout(false);
+            }
+        }
+
+        function handleLogout(showMessage = true) {
+            if(localStorage.getItem('jwt_token')) {
+                axios.post(`${API_URL}/logout`).catch(e=>{});
+            }
+            localStorage.removeItem('jwt_token');
+            localStorage.removeItem('user');
+            currentUser = null;
+            showPage('auth-page');
+            if(showMessage) Swal.fire({ toast: true, position: 'top-end', icon: 'info', title: 'Anda telah logout', showConfirmButton: false, timer: 1500 });
+        }
+
+        function showPage(pageId) {
+            document.getElementById('auth-page').classList.add('d-none');
+            document.getElementById('app-page').classList.add('d-none');
+            document.getElementById(pageId).classList.remove('d-none');
+        }
+
+        function switchTab(tabId) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.add('d-none'));
+            document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
+            
+            document.getElementById(`view-${tabId}`).classList.remove('d-none');
+            
+            const navLink = Array.from(document.querySelectorAll('.nav-link')).find(el => el.getAttribute('onclick').includes(tabId));
+            if(navLink) navLink.classList.add('active');
+
+            if (tabId === 'dashboard') {
+                document.getElementById('pageTitle').innerText = 'Dashboard Analytics';
+                document.getElementById('breadcrumbActive').innerText = 'Dashboard';
+                loadStats();
+            } else if (tabId === 'containers') {
+                document.getElementById('pageTitle').innerText = 'Container Management';
+                document.getElementById('breadcrumbActive').innerText = 'Containers';
+                loadContainers();
+            }
+        }
+
+        function toggleSidebar() {
+            document.getElementById('sidebar').classList.toggle('collapsed');
+        }
+
+        function toggleTheme(forceLight = false) {
+            const html = document.documentElement;
+            if(forceLight || html.getAttribute('data-bs-theme') === 'dark') {
+                html.setAttribute('data-bs-theme', 'light');
+                localStorage.setItem('theme', 'light');
+                document.querySelectorAll('.table-dark').forEach(el => el.classList.remove('table-dark'));
+            } else {
+                html.setAttribute('data-bs-theme', 'dark');
+                localStorage.setItem('theme', 'dark');
+                document.querySelectorAll('.table').forEach(el => el.classList.add('table-dark'));
+            }
+            
+            // Re-render charts for color updates if they exist
+            if(charts.bar) loadStats(); 
+        }
+
+        function getStatusBadge(status) {
+            const map = {
+                'Active': 'bg-info text-dark',
+                'Maintenance': 'bg-warning text-dark',
+                'Full': 'bg-danger',
+                'Archived': 'bg-secondary'
+            };
+            return `<span class="badge ${map[status] || 'bg-primary'}">${status}</span>`;
+        }
+
+        // === DASHBOARD STATS ===
+        async function loadStats() {
+            try {
+                const res = await axios.get(`${API_URL}/gateway/stats`);
+                const data = res.data.data;
+                
+                document.getElementById('statTotal').innerText = data.total_containers;
+                document.getElementById('statActive').innerText = data.active;
+                document.getElementById('statMaintenance').innerText = data.maintenance;
+                document.getElementById('statArchived').innerText = data.archived;
+
+                renderCharts(data);
+            } catch(e) { console.error('Gagal load stats'); }
+        }
+
+        function renderCharts(data) {
+            const isDark = document.documentElement.getAttribute('data-bs-theme') === 'dark';
+            const textColor = isDark ? '#f8fafc' : '#1e293b';
+
+            // Jenis Chart (Pie)
+            const ctxJenis = document.getElementById('jenisChart').getContext('2d');
+            if(charts.pie) charts.pie.destroy();
+            charts.pie = new Chart(ctxJenis, {
+                type: 'doughnut',
+                data: {
+                    labels: Object.keys(data.jenis_distribution),
+                    datasets: [{
+                        data: Object.values(data.jenis_distribution),
+                        backgroundColor: ['#06b6d4', '#f59e0b', '#ef4444', '#8b5cf6'],
+                        borderWidth: 0
+                    }]
+                },
+                options: { plugins: { legend: { position: 'bottom', labels: { color: textColor } } } }
+            });
+
+            // Tracking Activity (Bar)
+            const ctxActivity = document.getElementById('trackingChart').getContext('2d');
+            if(charts.bar) charts.bar.destroy();
+            charts.bar = new Chart(ctxActivity, {
+                type: 'bar',
+                data: {
+                    labels: Object.keys(data.tracking_activity),
+                    datasets: [{
+                        label: 'Log Perjalanan',
+                        data: Object.values(data.tracking_activity),
+                        backgroundColor: '#06b6d4',
+                        borderRadius: 4
+                    }]
+                },
+                options: { scales: { y: { beginAtZero: true, ticks:{color:textColor} }, x: { ticks:{color:textColor} } }, plugins: { legend: { display: false } } }
+            });
+        }
+
+        // === CONTAINER CRUD ===
+        function delaySearch() {
+            clearTimeout(searchTimer);
+            searchTimer = setTimeout(() => { currentPage = 1; loadContainers(); }, 500);
+        }
+
+        async function loadContainers(page = currentPage) {
+            currentPage = page;
+            const search = document.getElementById('searchInput').value;
+            const status = document.getElementById('filterStatus').value;
+            
+            const tbody = document.getElementById('containerTableBody');
+            tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4"><div class="spinner-border text-info"></div></td></tr>`;
+
+            try {
+                const res = await axios.get(`${API_URL}/gateway/containers?per_page=10&page=${page}&search=${search}&status=${status}`);
+                const data = res.data.data;
+                const pagination = res.data.pagination;
+
+                if (data.length === 0) {
+                    tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-muted">Tidak ada data ditemukan.</td></tr>`;
+                } else {
+                    tbody.innerHTML = data.map(item => `
+                        <tr>
+                            <td class="fw-semibold text-primary-cyan">${item.kode_container}</td>
+                            <td>${item.jenis_limbah}</td>
+                            <td>${item.kapasitas} kg</td>
+                            <td>${item.lokasi}</td>
+                            <td>${getStatusBadge(item.status)}</td>
+                            <td>
+                                <button class="btn btn-sm btn-outline-info" onclick="viewDetail(${item.id})" title="Detail/Log"><i class="bi bi-eye"></i></button>
+                                ${currentUser && currentUser.role === 'admin' ? `
+                                    <button class="btn btn-sm btn-outline-warning" onclick="openModal('edit', ${item.id})" title="Edit"><i class="bi bi-pencil"></i></button>
+                                    ${item.status !== 'Archived' ? `<button class="btn btn-sm btn-outline-secondary" onclick="archiveContainer(${item.id})" title="Archive"><i class="bi bi-archive"></i></button>` : ''}
+                                    <button class="btn btn-sm btn-outline-danger" onclick="deleteContainer(${item.id})" title="Hapus"><i class="bi bi-trash"></i></button>
+                                ` : ''}
+                            </td>
+                        </tr>
+                    `).join('');
+                }
+
+                // Render Pagination
+                document.getElementById('paginationInfo').innerText = `Showing ${data.length} of ${pagination.total} items`;
+                let pages = '';
+                for(let i=1; i<=pagination.last_page; i++) {
+                    pages += `<button class="btn btn-sm ${i === page ? 'btn-cyan' : 'btn-outline-secondary'}" onclick="loadContainers(${i})">${i}</button>`;
+                }
+                document.getElementById('paginationControls').innerHTML = pages;
+
+            } catch (err) {
+                tbody.innerHTML = `<tr><td colspan="6" class="text-center py-4 text-danger">Gagal memuat data</td></tr>`;
+            }
+        }
+
+        const modalContainer = new bootstrap.Modal(document.getElementById('containerModal'));
+        
+        function openModal(mode, id = null) {
+            document.getElementById('formContainer').reset();
+            document.getElementById('c_id').value = id || '';
+            document.getElementById('containerModalLabel').innerText = mode === 'add' ? 'Tambah Container Baru' : 'Edit Container';
+            
+            if (mode === 'edit') {
+                // Fetch detail
+                axios.get(`${API_URL}/gateway/containers/${id}`).then(res => {
+                    const c = res.data.data;
+                    document.getElementById('c_kode').value = c.kode_container;
+                    document.getElementById('c_jenis').value = c.jenis_limbah;
+                    document.getElementById('c_kapasitas').value = c.kapasitas;
+                    document.getElementById('c_lokasi').value = c.lokasi;
+                });
+            }
+            modalContainer.show();
+        }
+
+        async function saveContainer() {
+            const id = document.getElementById('c_id').value;
+            const payload = {
+                kode_container: document.getElementById('c_kode').value,
+                jenis_limbah: document.getElementById('c_jenis').value,
+                kapasitas: document.getElementById('c_kapasitas').value,
+                lokasi: document.getElementById('c_lokasi').value,
+            };
+
+            try {
+                if (id) {
+                    await axios.put(`${API_URL}/gateway/containers/${id}`, payload);
+                    Swal.fire('Berhasil', 'Container diupdate', 'success');
+                } else {
+                    await axios.post(`${API_URL}/gateway/containers`, payload);
+                    Swal.fire('Berhasil', 'Container ditambahkan', 'success');
+                }
+                modalContainer.hide();
+                loadContainers();
+            } catch (err) {
+                if(err.response && err.response.status === 422) {
+                    const msg = Object.values(err.response.data.errors).flat().join('\n');
+                    Swal.fire('Validasi Gagal', msg, 'error');
                 }
             }
-        };
+        }
 
-        // Panggil data pertama kali halaman dimuat
-        loadData();
+        async function archiveContainer(id) {
+            if(await confirmAction('Archive Container ini?')) {
+                try {
+                    await axios.patch(`${API_URL}/gateway/containers/${id}/archive`);
+                    Swal.fire('Berhasil', 'Status diubah ke Archived', 'success');
+                    loadContainers();
+                } catch(e) {}
+            }
+        }
+
+        async function deleteContainer(id) {
+            if(await confirmAction('Hapus permanen container beserta log-nya?')) {
+                try {
+                    await axios.delete(`${API_URL}/gateway/containers/${id}`);
+                    Swal.fire('Terhapus!', 'Data telah dihapus.', 'success');
+                    loadContainers();
+                } catch(e) {}
+            }
+        }
+
+        function confirmAction(text) {
+            return Swal.fire({
+                title: 'Apakah Anda yakin?', text: text, icon: 'warning',
+                showCancelButton: true, confirmButtonColor: '#06b6d4', cancelButtonColor: '#6c757d',
+                confirmButtonText: 'Ya, Lanjutkan'
+            }).then((result) => result.isConfirmed);
+        }
+
+        // === CONTAINER DETAIL & TRACKING ===
+        async function viewDetail(id) {
+            activeContainerId = id;
+            document.getElementById('pageTitle').innerText = 'Detail Container';
+            document.getElementById('breadcrumbActive').innerText = 'Detail';
+            switchTab('detail');
+            
+            document.getElementById('detailInfo').innerHTML = '<div class="spinner-border spinner-border-sm text-info"></div>';
+            document.getElementById('trackingTimeline').innerHTML = '<li>Memuat...</li>';
+
+            try {
+                const res = await axios.get(`${API_URL}/gateway/containers/${id}`);
+                const c = res.data.data;
+                
+                document.getElementById('detailInfo').innerHTML = `
+                    <div class="mb-2"><small class="text-muted">Kode ID:</small><br><span class="fs-5 fw-bold text-primary-cyan">${c.kode_container}</span></div>
+                    <div class="mb-2"><small class="text-muted">Status:</small><br>${getStatusBadge(c.status)}</div>
+                    <div class="mb-2"><small class="text-muted">Jenis Limbah:</small><br>${c.jenis_limbah}</div>
+                    <div class="mb-2"><small class="text-muted">Kapasitas / Lokasi:</small><br>${c.kapasitas} kg &bull; ${c.lokasi}</div>
+                    <div class="mt-4"><small class="text-muted">Total Pergerakan:</small><br><span class="fs-4">${c.tracking_logs_count}x</span></div>
+                `;
+
+                renderTimeline(c.tracking_logs);
+            } catch(e) {
+                document.getElementById('detailInfo').innerHTML = '<span class="text-danger">Gagal memuat info</span>';
+            }
+        }
+
+        function renderTimeline(logs) {
+            const tl = document.getElementById('trackingTimeline');
+            if(!logs || logs.length === 0) {
+                tl.innerHTML = '<li class="text-muted">Belum ada history perjalanan.</li>';
+                return;
+            }
+
+            tl.innerHTML = logs.map(log => `
+                <li class="timeline-item">
+                    <div class="fw-bold text-light">${log.lokasi} <span class="badge bg-dark border ms-2">${log.status_perjalanan}</span></div>
+                    <div class="small text-primary-cyan mb-1">${log.tanggal} &bull; Oleh: ${log.operator}</div>
+                    <div class="text-muted small">${log.catatan || '-'}</div>
+                </li>
+            `).join('');
+        }
+
+        const modalLog = new bootstrap.Modal(document.getElementById('logModal'));
+        function openLogModal() {
+            document.getElementById('formLog').reset();
+            document.getElementById('l_tanggal').valueAsDate = new Date();
+            // Default operator
+            document.getElementById('l_catatan').value = `Dicatat oleh ${currentUser.name}`;
+            modalLog.show();
+        }
+
+        async function saveLog() {
+            if(!activeContainerId) return;
+            const payload = {
+                tanggal: document.getElementById('l_tanggal').value,
+                lokasi: document.getElementById('l_lokasi').value,
+                status_perjalanan: document.getElementById('l_status').value,
+                catatan: document.getElementById('l_catatan').value,
+                operator: currentUser.name // hardcode for demo purposes, backend should ideally take from auth if operator is fixed, but here we pass it.
+            };
+
+            try {
+                await axios.post(`${API_URL}/gateway/containers/${activeContainerId}/tracking-logs`, payload);
+                Swal.fire('Berhasil', 'Log tracking ditambahkan', 'success');
+                modalLog.hide();
+                viewDetail(activeContainerId); // refresh
+            } catch (err) {
+                Swal.fire('Error', 'Gagal menyimpan log', 'error');
+            }
+        }
     </script>
 </body>
 </html>
