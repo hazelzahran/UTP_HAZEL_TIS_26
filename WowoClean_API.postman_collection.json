@@ -1,0 +1,411 @@
+{
+  "info": {
+    "_postman_id": "wowoclean-api",
+    "name": "WowoClean API v1.0.0",
+    "description": "Koleksi API untuk Sistem Manajemen Limbah B3 - WowoClean\n\nContains:\n- Authentication (Login, Profile, Logout)\n- Containers (CRUD, Search, Filter, Pagination)\n- Tracking Logs (List, Create)\n- Dashboard Statistics",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Authentication",
+      "item": [
+        {
+          "name": "Login",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"email\":\"admin@wowoclean.com\",\"password\":\"password123\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/login",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "login"
+              ]
+            },
+            "description": "Login dan dapatkan JWT token"
+          }
+        },
+        {
+          "name": "Get Profile",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/profile",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "profile"
+              ]
+            },
+            "description": "Get profil user yang sedang login"
+          }
+        },
+        {
+          "name": "Logout",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/logout",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "logout"
+              ]
+            },
+            "description": "Logout dan invalidate token"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Containers",
+      "item": [
+        {
+          "name": "List All Containers",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers?per_page=10&page=1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers"
+              ],
+              "query": [
+                {
+                  "key": "per_page",
+                  "value": "10"
+                },
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "search",
+                  "value": "",
+                  "disabled": true
+                },
+                {
+                  "key": "status",
+                  "value": "Active",
+                  "disabled": true
+                },
+                {
+                  "key": "jenis_limbah",
+                  "value": "Chemical",
+                  "disabled": true
+                },
+                {
+                  "key": "sort_by",
+                  "value": "created_at",
+                  "disabled": true
+                },
+                {
+                  "key": "sort_order",
+                  "value": "desc",
+                  "disabled": true
+                }
+              ]
+            },
+            "description": "Get daftar semua containers dengan search, filter, sort, pagination"
+          }
+        },
+        {
+          "name": "Get Container Detail",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1"
+              ]
+            },
+            "description": "Get detail satu container beserta tracking logs"
+          }
+        },
+        {
+          "name": "Create Container",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"kode_container\":\"WC-B3-TEST-001\",\"jenis_limbah\":\"Chemical\",\"kapasitas\":750,\"lokasi\":\"Gudang Zona Test\",\"status\":\"Active\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers"
+              ]
+            },
+            "description": "Buat container baru (Admin only)"
+          }
+        },
+        {
+          "name": "Update Container",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"kode_container\":\"WC-B3-TEST-001-UPDATED\",\"lokasi\":\"Gudang Zona Test Updated\",\"status\":\"Maintenance\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1"
+              ]
+            },
+            "description": "Update container (Admin only)"
+          }
+        },
+        {
+          "name": "Archive Container",
+          "request": {
+            "method": "PATCH",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1/archive",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1",
+                "archive"
+              ]
+            },
+            "description": "Archive container (Admin only)"
+          }
+        },
+        {
+          "name": "Delete Container",
+          "request": {
+            "method": "DELETE",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1"
+              ]
+            },
+            "description": "Delete container (Admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Tracking Logs",
+      "item": [
+        {
+          "name": "List Container Tracking Logs",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1/tracking-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1",
+                "tracking-logs"
+              ]
+            },
+            "description": "Get daftar tracking logs untuk container tertentu"
+          }
+        },
+        {
+          "name": "Create Tracking Log",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\"tanggal\":\"2026-05-29\",\"lokasi\":\"Gudang Zona A\",\"status_perjalanan\":\"In Transit\",\"operator\":\"Budi Santoso\",\"catatan\":\"Container dalam perjalanan ke lokasi pemrosesan\"}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/containers/1/tracking-logs",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "containers",
+                "1",
+                "tracking-logs"
+              ]
+            },
+            "description": "Tambah tracking log baru untuk container (Admin only)"
+          }
+        }
+      ]
+    },
+    {
+      "name": "Dashboard",
+      "item": [
+        {
+          "name": "Get Statistics",
+          "request": {
+            "method": "GET",
+            "header": [
+              {
+                "key": "Authorization",
+                "value": "Bearer {{token}}"
+              }
+            ],
+            "url": {
+              "raw": "{{base_url}}/api/v1/gateway/stats",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "v1",
+                "gateway",
+                "stats"
+              ]
+            },
+            "description": "Get dashboard statistics (total containers, status distribution, tracking activity, recent logs)"
+          }
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8000",
+      "type": "string"
+    },
+    {
+      "key": "token",
+      "value": "",
+      "type": "string"
+    }
+  ]
+}
