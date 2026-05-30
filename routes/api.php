@@ -45,8 +45,8 @@ Route::prefix('v1')->group(function () {
             // Tracking logs - READ (admin + user)
             Route::get('/containers/{id}/tracking-logs', [TrackingLogController::class, 'index']);
 
-            // Tracking logs - WRITE (admin only)
-            Route::middleware('role:admin')->group(function () {
+            // Tracking logs - WRITE (admin + operator)
+            Route::middleware('role:admin,operator')->group(function () {
                 Route::post('/containers/{id}/tracking-logs', [TrackingLogController::class, 'store']);
             });
         });

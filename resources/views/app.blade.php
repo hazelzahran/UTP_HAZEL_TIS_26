@@ -19,7 +19,22 @@
             --border-color: #2d3e5f;
             --text-light: #e9ecef;
             --text-muted: #a8b5c8;
-        }
+            }
+
+            body.light-mode {
+                --primary: #f8fafc;
+                --secondary: #0d6efd;
+                --success: #0ca678;
+                --danger: #d9480f;
+                --warning: #f59f00;
+                --dark-bg: #f0f4f8;
+                --card-bg: #ffffff;
+                --border-color: #e6eaf0;
+                --text-light: #06232b;
+                --text-muted: #6c757d;
+                background: linear-gradient(135deg, var(--dark-bg) 0%, #ffffff 100%);
+                color: var(--text-light);
+            }
 
         * {
             margin: 0;
@@ -796,25 +811,25 @@
         </div>
         <ul class="sidebar-menu">
             <li>
-                <a href="#dashboard" class="nav-link active" onclick="navigateTo('dashboard')">
+                <a href="#dashboard" class="nav-link active" onclick="navigateTo('dashboard', event)">
                     <i class="fas fa-chart-line"></i>
                     <span>Dashboard</span>
                 </a>
             </li>
             <li>
-                <a href="#containers" class="nav-link" onclick="navigateTo('containers')">
+                <a href="#containers" class="nav-link" onclick="navigateTo('containers', event)">
                     <i class="fas fa-boxes"></i>
                     <span>Manajemen Kontainer</span>
                 </a>
             </li>
             <li>
-                <a href="#tracking-logs" class="nav-link" onclick="navigateTo('tracking-logs')">
+                <a href="#tracking-logs" class="nav-link" onclick="navigateTo('tracking-logs', event)">
                     <i class="fas fa-map-location-dot"></i>
                     <span>Tracking Logs</span>
                 </a>
             </li>
             <li>
-                <a href="#profile" class="nav-link" onclick="navigateTo('profile')">
+                <a href="#profile" class="nav-link" onclick="navigateTo('profile', event)">
                     <i class="fas fa-user-circle"></i>
                     <span>Profil</span>
                 </a>
@@ -1170,7 +1185,7 @@
                         <div class="form-group">
                             <label>Status Perjalanan</label>
                             <select id="trackingStatus" required>
-                                <option value="">Pilih Status</option>
+                                <option value="" disabled selected>Pilih Status</option>
                                 <option value="Received">Diterima</option>
                                 <option value="In Transit">Dalam Perjalanan</option>
                                 <option value="Processing">Sedang Diproses</option>
@@ -1225,6 +1240,6 @@
     <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/axios@1.6.2/dist/axios.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
-    <script src="/js/app.js"></script>
+    <script src="/js/app.js?v=2"></script>
 </body>
 </html>

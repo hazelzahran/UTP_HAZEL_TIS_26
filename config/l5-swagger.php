@@ -65,6 +65,8 @@ return [
 
     ],
 
+    'generate_always' => env('L5_SWAGGER_GENERATE_ALWAYS', true),
+
     'scanOptions' => [
         'default_processors_configuration' => [],
         'aliases' => [],

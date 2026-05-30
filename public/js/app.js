@@ -35,6 +35,7 @@ axios.interceptors.response.use(
 // ============================================
 
 document.addEventListener('DOMContentLoaded', () => {
+    initTheme();
     checkAuth();
 });
 
@@ -47,22 +48,44 @@ function checkAuth() {
 
     authToken = token;
     loadUserProfile();
+
+    const hashPage = window.location.hash.replace('#', '');
+    if (hashPage && ['dashboard', 'containers', 'tracking-logs', 'profile'].includes(hashPage)) {
+        navigateTo(hashPage);
+        return;
+    }
+
     loadDashboard();
 }
 
-function navigateTo(page) {
+function navigateTo(page, event = null) {
+    const pageIdMap = {
+        'tracking-logs': 'trackingLogsPage',
+    };
+
     // Hide all pages
     document.querySelectorAll('.page-content').forEach(el => el.style.display = 'none');
 
     // Show selected page
-    const pageElement = document.getElementById(page + 'Page');
+    const pageId = pageIdMap[page] ?? `${page}Page`;
+    const pageElement = document.getElementById(pageId);
     if (pageElement) {
         pageElement.style.display = 'block';
     }
 
     // Update active nav
     document.querySelectorAll('.nav-link').forEach(el => el.classList.remove('active'));
-    event.target.closest('.nav-link')?.classList.add('active');
+    const source = event?.target || null;
+    let navLink = source?.closest('.nav-link');
+    if (!navLink) {
+        navLink = document.querySelector(`.nav-link[href="#${page}"]`);
+    }
+    if (navLink) {
+        navLink.classList.add('active');
+    }
+
+    // Update hash for direct links
+    window.location.hash = `#${page}`;
 
     // Load page data
     if (page === 'containers') {
@@ -90,8 +113,35 @@ function toggleUserMenu() {
 }
 
 function toggleTheme() {
-    // Placeholder untuk dark/light mode
-    toast('Fitur tema akan segera hadir!', 'info');
+    const isLight = document.body.classList.contains('light-mode');
+    applyTheme(isLight ? 'dark' : 'light');
+}
+
+function initTheme() {
+    const stored = localStorage.getItem('theme');
+    const theme = stored || 'dark';
+    applyTheme(theme);
+}
+
+function applyTheme(theme) {
+    const body = document.body;
+    const btnIcon = document.querySelector('.topbar-right button[onclick="toggleTheme()"] i') || document.querySelector('.topbar-right i');
+
+    if (theme === 'light') {
+        body.classList.add('light-mode');
+        localStorage.setItem('theme', 'light');
+        if (btnIcon) {
+            btnIcon.classList.remove('fa-moon');
+            btnIcon.classList.add('fa-sun');
+        }
+    } else {
+        body.classList.remove('light-mode');
+        localStorage.setItem('theme', 'dark');
+        if (btnIcon) {
+            btnIcon.classList.remove('fa-sun');
+            btnIcon.classList.add('fa-moon');
+        }
+    }
 }
 
 function openSwagger() {
@@ -504,21 +554,40 @@ function confirmDelete() {
 // ============================================
 
 function openTrackingLogModal(containerId) {
-    document.getElementById('trackingContainerId').value = containerId;
     document.getElementById('trackingLogForm').reset();
+    document.getElementById('trackingContainerId').value = containerId;
+    document.getElementById('trackingTanggal').valueAsDate = new Date();
     const modal = new bootstrap.Modal(document.getElementById('trackingLogModal'));
     modal.show();
 }
 
 function saveTrackingLog() {
     const containerId = document.getElementById('trackingContainerId').value;
+    const tanggal = document.getElementById('trackingTanggal').value;
+    const lokasi = document.getElementById('trackingLokasi').value;
+    const status = document.getElementById('trackingStatus').value;
+    const operator = document.getElementById('trackingOperator').value;
+    const catatan = document.getElementById('trackingCatatan').value;
+
+    if (!containerId) {
+        toast('Tidak ada container yang dipilih untuk tracking log.', 'error');
+        return;
+    }
+
+    if (!tanggal || !lokasi || !status || !operator) {
+        toast('Harap lengkapi semua field wajib: tanggal, lokasi, status, dan operator.', 'error');
+        return;
+    }
+
     const data = {
-        tanggal: document.getElementById('trackingTanggal').value,
-        lokasi: document.getElementById('trackingLokasi').value,
-        status_perjalanan: document.getElementById('trackingStatus').value,
-        operator: document.getElementById('trackingOperator').value,
-        catatan: document.getElementById('trackingCatatan').value,
+        tanggal,
+        lokasi,
+        status_perjalanan: status,
+        operator,
+        catatan,
     };
+
+    console.log('saveTrackingLog', {containerId, data});
 
     axios.post(`${API_GATEWAY}/containers/${containerId}/tracking-logs`, data)
         .then(response => {
@@ -527,8 +596,14 @@ function saveTrackingLog() {
             loadTrackingLogsTimeline();
         })
         .catch(error => {
-            const errorMsg = error.response?.data?.errors || error.response?.data?.message || 'Terjadi kesalahan';
-            toast(JSON.stringify(errorMsg), 'error');
+            const errors = error.response?.data?.errors;
+            const message = error.response?.data?.message;
+            if (errors) {
+                const msg = Object.values(errors).flat().join(' | ');
+                toast(msg, 'error');
+                return;
+            }
+            toast(message || 'Terjadi kesalahan saat menyimpan tracking log.', 'error');
         });
 }
 
